@@ -1,0 +1,7 @@
+.nav32-container {
+  display: flex;
+  position: relative;
+}
+.nav32-nav32 {
+  margin-left: var(--dl-space-space-unit);
+}
