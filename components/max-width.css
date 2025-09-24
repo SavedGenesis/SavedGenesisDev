@@ -1,0 +1,22 @@
+.max-width-max-width {
+  gap: var(--dl-space-space-oneandhalfunits);
+  display: flex;
+  position: relative;
+  align-items: center;
+  flex-direction: column;
+}
+.max-width-container {
+  gap: var(--dl-space-space-halfunit);
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+}
+.max-width-title {
+  text-align: center;
+}
+.max-width-text {
+  font-size: 20px;
+  font-style: normal;
+  text-align: center;
+  font-weight: 500;
+}

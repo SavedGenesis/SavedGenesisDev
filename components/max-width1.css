@@ -1,0 +1,27 @@
+.max-width1-max-width {
+  gap: var(--dl-space-space-oneandhalfunits);
+  display: flex;
+  position: relative;
+  align-items: center;
+  flex-direction: column;
+}
+.max-width1-container {
+  gap: var(--dl-space-space-halfunit);
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+}
+.max-width1-title {
+  text-align: center;
+}
+.max-width1-text {
+  font-size: 20px;
+  align-self: center;
+  font-style: normal;
+  text-align: justify;
+  font-weight: 500;
+}
+.max-width1-root-class-name {
+  height: auto;
+  margin-top: 150px;
+}
