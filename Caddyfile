@@ -1,4 +1,4 @@
-savedgenesis.com:8443, www.savedgenesis.com:8443 {
+savedgenesis.com:9443, www.savedgenesis.com:9443 {
   encode zstd gzip
   header {
     Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
@@ -8,7 +8,7 @@ savedgenesis.com:8443, www.savedgenesis.com:8443 {
   }
   reverse_proxy web:3000
 }
-savedgenesis.com:8080, www.savedgenesis.com:8080 {
+savedgenesis.com:9000, www.savedgenesis.com:9000 {
   encode zstd gzip
   header {
     Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
