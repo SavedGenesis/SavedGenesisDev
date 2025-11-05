@@ -20,7 +20,8 @@
 }
 
 body {
-  background: var(--background);
+  background: radial-gradient(1200px 600px at 80% -10%, #1a1a1a, transparent),
+    radial-gradient(1000px 500px at -10% 10%, #111827, transparent),
+    #000;
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
 }
