@@ -468,8 +468,43 @@ chmod a+r /etc/apt/keyrings/docker.gpg
 
 **Note**: Some systems may also need `ca-certificates` and `curl` if they're not already installed:
 ```bash
-apt-get install -y ca-certificates curl gnupg
+apt-get install -y ca-certificates curl gnupg 
 ```
+
+### If you get "ssh: no key found" or "unable to authenticate":
+
+This error means the SSH private key in your GitHub secret `VPS_SSH_KEY` is invalid or incorrectly formatted.
+
+**How to fix:**
+
+1. **Get your private key from your Mac**:
+   ```bash
+   cat ~/.ssh/id_ed25519
+   # OR if you used RSA:
+   # cat ~/.ssh/id_rsa
+   ```
+
+2. **Copy the ENTIRE key** (including header and footer):
+   - Must start with `-----BEGIN OPENSSH PRIVATE KEY-----` or `-----BEGIN RSA PRIVATE KEY-----`
+   - Must end with `-----END OPENSSH PRIVATE KEY-----` or `-----END RSA PRIVATE KEY-----`
+   - Include ALL lines between header and footer
+   - No extra spaces or newlines at the start/end
+
+3. **Update the GitHub secret**:
+   - Go to: https://github.com/SavedGenesis/SavedGenesisDev/settings/secrets/actions
+   - Find `VPS_SSH_KEY` and click "Update"
+   - Delete the old value
+   - Paste the entire private key exactly as it appears
+   - Click "Update secret"
+
+4. **Verify the key works manually**:
+   ```bash
+   # On your Mac, test SSH to your VPS
+   ssh -i ~/.ssh/id_ed25519 deploy@YOUR_VPS_IP
+   # If this works, the key is correct
+   ```
+
+**Important**: Make sure you're using the **private key** (not the `.pub` public key file)!
 
 ### If deployment fails: 
 
