@@ -1,9 +1,15 @@
-savedgenesis.com, www.savedgenesis.com {
+savedgenesis.com:8443, www.savedgenesis.com:8443 {
   encode zstd gzip
-  @static {
-    path /_next/*
-    path /public/*
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    X-Content-Type-Options nosniff
+    X-Frame-Options DENY
+    Referrer-Policy no-referrer-when-downgrade
   }
+  reverse_proxy web:3000
+}
+savedgenesis.com:8080, www.savedgenesis.com:8080 {
+  encode zstd gzip
   header {
     Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
     X-Content-Type-Options nosniff

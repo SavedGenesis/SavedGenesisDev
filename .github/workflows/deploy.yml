@@ -73,8 +73,8 @@ jobs:
                 image: caddy:2.8-alpine
                 restart: unless-stopped
                 ports:
-                  - "80:80"
-                  - "443:443"
+                  - "8080:80"
+                  - "8443:443"
                 volumes:
                   - caddy_data:/data
                   - caddy_config:/config
@@ -91,7 +91,17 @@ jobs:
             # Create Caddyfile
             echo "=== Creating Caddyfile ==="
             cat > Caddyfile <<'EOF'
-            savedgenesis.com, www.savedgenesis.com {
+            savedgenesis.com:8443, www.savedgenesis.com:8443 {
+              encode zstd gzip
+              header {
+                Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+                X-Content-Type-Options nosniff
+                X-Frame-Options DENY
+                Referrer-Policy no-referrer-when-downgrade
+              }
+              reverse_proxy web:3000
+            }
+            savedgenesis.com:8080, www.savedgenesis.com:8080 {
               encode zstd gzip
               header {
                 Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
@@ -132,6 +142,14 @@ jobs:
               exit 1
             }
             
+            # Check what's using ports 80, 443, 8080, and 8443
+            echo "=== Checking port usage ==="
+            sudo lsof -i :80 || echo "Port 80 is free"
+            sudo lsof -i :443 || echo "Port 443 is free"
+            sudo lsof -i :8080 || echo "Port 8080 is free"
+            sudo lsof -i :8443 || echo "Port 8443 is free"
+            sudo netstat -tulpn | grep -E ':(80|443|8080|8443)' || echo "No processes found on ports 80/443/8080/8443"
+            
             # Stop existing containers if any
             echo "=== Stopping existing containers ==="
             $DOCKER_COMPOSE down || echo "No existing containers to stop"
@@ -140,6 +158,11 @@ jobs:
             echo "=== Starting containers ==="
             $DOCKER_COMPOSE up -d || {
               echo "ERROR: Failed to start containers"
+              echo "Checking what's using ports 80/443:"
+              sudo lsof -i :80 || true
+              sudo lsof -i :443 || true
+              echo "Checking if containers started:"
+              $DOCKER_COMPOSE ps || true
               exit 1
             }
             
