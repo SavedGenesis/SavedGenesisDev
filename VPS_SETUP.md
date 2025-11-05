@@ -471,7 +471,7 @@ chmod a+r /etc/apt/keyrings/docker.gpg
 apt-get install -y ca-certificates curl gnupg
 ```
 
-### If deployment fails:
+### If deployment fails: 
 
 ```bash
 # SSH to your VPS as deploy user
