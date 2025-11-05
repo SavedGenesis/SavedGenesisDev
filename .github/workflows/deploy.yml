@@ -35,14 +35,32 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            set -euo pipefail
-            mkdir -p /srv/savedgenesis
+            set -x  # Enable debug output
+            echo "=== Starting deployment ==="
+            echo "Current user: $(whoami)"
+            echo "Current directory: $(pwd)"
+            
+            # Create directory and set permissions
+            sudo mkdir -p /srv/savedgenesis
+            sudo chown -R $USER:$USER /srv/savedgenesis
             cd /srv/savedgenesis
+            echo "Working directory: $(pwd)"
             
-            # Log in to GHCR to pull private images (if needed)
-            # Note: Public images don't need authentication, but we'll try it anyway
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin || true
+            # Check Docker access
+            echo "=== Checking Docker ==="
+            docker --version || echo "Docker not found or not accessible"
+            docker ps || echo "Cannot run docker ps"
             
+            # Check Docker Compose
+            echo "=== Checking Docker Compose ==="
+            docker compose version || docker-compose version || echo "Docker Compose not found"
+            
+            # Log in to GHCR (public images might not need this, but try anyway)
+            echo "=== Logging in to GHCR ==="
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin || echo "GHCR login failed (might be OK for public images)"
+            
+            # Create docker-compose.yml
+            echo "=== Creating docker-compose.yml ==="
             cat > docker-compose.yml <<'EOF'
             version: "3.9"
             services:
@@ -67,6 +85,11 @@ jobs:
               caddy_data:
               caddy_config:
             EOF
+            echo "docker-compose.yml created"
+            ls -la docker-compose.yml
+            
+            # Create Caddyfile
+            echo "=== Creating Caddyfile ==="
             cat > Caddyfile <<'EOF'
             savedgenesis.com, www.savedgenesis.com {
               encode zstd gzip
@@ -79,17 +102,51 @@ jobs:
               reverse_proxy web:3000
             }
             EOF
+            echo "Caddyfile created"
+            ls -la Caddyfile
             
-            # Try docker compose, fallback to docker-compose if needed
-            docker compose version || docker-compose version || (echo "Docker Compose not found" && exit 1)
+            # Verify files exist
+            echo "=== Verifying files ==="
+            ls -la /srv/savedgenesis/
+            
+            # Determine docker compose command
+            echo "=== Determining docker compose command ==="
+            if command -v docker &> /dev/null && docker compose version &> /dev/null; then
+              DOCKER_COMPOSE="docker compose"
+            elif command -v docker-compose &> /dev/null; then
+              DOCKER_COMPOSE="docker-compose"
+            elif sudo docker compose version &> /dev/null; then
+              DOCKER_COMPOSE="sudo docker compose"
+            elif sudo docker-compose version &> /dev/null; then
+              DOCKER_COMPOSE="sudo docker-compose"
+            else
+              echo "ERROR: Docker Compose not found!"
+              exit 1
+            fi
+            echo "Using: $DOCKER_COMPOSE"
             
             # Pull images
-            docker compose pull || sudo docker compose pull
+            echo "=== Pulling images ==="
+            $DOCKER_COMPOSE pull || {
+              echo "ERROR: Failed to pull images"
+              exit 1
+            }
+            
+            # Stop existing containers if any
+            echo "=== Stopping existing containers ==="
+            $DOCKER_COMPOSE down || echo "No existing containers to stop"
             
             # Start containers
-            docker compose up -d || sudo docker compose up -d
+            echo "=== Starting containers ==="
+            $DOCKER_COMPOSE up -d || {
+              echo "ERROR: Failed to start containers"
+              exit 1
+            }
             
             # Verify containers are running
-            docker compose ps || sudo docker compose ps
+            echo "=== Verifying containers ==="
+            $DOCKER_COMPOSE ps
+            
+            echo "=== Deployment complete ==="
 
 
