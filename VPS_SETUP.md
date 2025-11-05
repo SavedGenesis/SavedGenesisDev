@@ -314,13 +314,70 @@ git init
 git add .
 git commit -m "Initial commit - savedgenesis.com site"
 
-# Add your GitHub remote
-git remote add origin https://github.com/SavedGenesis/SavedGenesisDev.git
+# Check if remote already exists
+git remote -v
 
-# Push to main branch
+# If the remote doesn't exist, add it:
+# git remote add origin https://github.com/SavedGenesis/SavedGenesisDev.git
+
+# If the remote exists but points to wrong URL, update it:
+# git remote set-url origin https://github.com/SavedGenesis/SavedGenesisDev.git
+
+# If the remote exists and is correct, you're good to go
+```
+
+**Handle the remote** (choose one based on your situation):
+
+**Option A: Remote doesn't exist** - Add it:
+```bash
+git remote add origin https://github.com/SavedGenesis/SavedGenesisDev.git
+```
+
+**Option B: Remote exists but points to wrong URL** - Update it:
+```bash
+git remote set-url origin https://github.com/SavedGenesis/SavedGenesisDev.git
+```
+
+**Option C: Remote exists and is correct** - Skip remote setup
+
+**Push to main branch**:
+
+```bash
+# Rename current branch to main (if needed)
 git branch -M main
+
+# Try to push (if branch doesn't exist on remote)
+git push -u origin main
+
+# If you get an error about existing branch, you can:
+# Option 1: Force push (overwrites remote - use with caution!)
+# git push -u origin main --force
+
+# Option 2: Pull first, then push (preserves remote history)
+# git pull origin main --allow-unrelated-histories
+# git push -u origin main
+```
+
+**If you get "refusing to merge unrelated histories"**:
+```bash
+# Pull with allow-unrelated-histories flag
+git pull origin main --allow-unrelated-histories
+
+# Resolve any conflicts if they occur, then:
+git add .
+git commit -m "Merge with existing remote branch"
 git push -u origin main
 ```
+
+**If you want to force push** (overwrites remote branch - only do this if you're sure):
+```bash
+git push -u origin main --force
+```
+
+**Warning**: Force push will overwrite the remote branch. Only use this if:
+- You're sure you want to replace what's on the remote
+- You've backed up anything important from the remote
+- You're okay with losing the remote branch's history
 
 ## Step 9: Verify GitHub Secrets
 
