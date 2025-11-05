@@ -9,9 +9,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV NODE_ENV=production
-# Run build with verbose output to see errors
-RUN npm run build || (echo "Build failed with exit code $?" && exit 1)
+# Don't set NODE_ENV=production during build (Next.js needs dev mode for some checks)
+# Run build - errors will be shown in output
+RUN npm run build
 
 FROM node:20-alpine AS runner
 WORKDIR /app
