@@ -90,17 +90,16 @@ jobs:
             # Create Caddyfile
             echo "=== Creating Caddyfile ==="
             cat > Caddyfile <<'EOF'
-            savedgenesis.com:9443, www.savedgenesis.com:9443 {
-              encode zstd gzip
-              header {
-                Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-                X-Content-Type-Options nosniff
-                X-Frame-Options DENY
-                Referrer-Policy no-referrer-when-downgrade
-              }
-              reverse_proxy web:3000
+            {
+              auto_https off
             }
-            savedgenesis.com:9000, www.savedgenesis.com:9000 {
+
+            http://savedgenesis.com:9000, http://www.savedgenesis.com:9000 {
+              redir https://savedgenesis.com:9443{uri}
+            }
+
+            https://savedgenesis.com:9443, https://www.savedgenesis.com:9443 {
+              tls internal
               encode zstd gzip
               header {
                 Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
