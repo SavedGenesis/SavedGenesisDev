@@ -290,7 +290,11 @@ Enter a strong password when prompted. Store it securely (password manager). Thi
    - **TTL**: 600 (or default)
    - **Action**: Add (after deleting the CNAME)
 
-6. Save changes
+6. **Remove any forwarding rules**:
+   
+   - Look for any "Forwarding" or "Redirect" rules for `savedgenesis.com` or `www.savedgenesis.com`
+   - **Delete any forwarding rules** that redirect to other domains (like `davidbennettmd.savedgenesis.com`)
+   - Forwarding rules override DNS records, so they must be removed
 
 **Note**: If you had other DNS records (like MX for email, TXT for verification, etc.), leave those alone. Only change the A record for `@` and replace the CNAME for `www` with an A record.
 
@@ -529,11 +533,28 @@ docker compose logs caddy
 - Verify the A records in GoDaddy match your VPS IP
 - Check propagation: https://dnschecker.org/
 
+### If you get "authorization head error" or "privacy error":
+
+This usually means:
+1. **You're accessing the wrong port** - Since we're using ports 9000/9443 (not 80/443), you need to specify the port:
+   - Access via: `http://savedgenesis.com:9000` or `https://savedgenesis.com:9443`
+   - **NOT** `https://savedgenesis.com` (this hits port 443, which is likely Pterodactyl or another service)
+
+2. **GoDaddy forwarding rule** - If `savedgenesis.com` redirects to another domain, remove the forwarding rule in GoDaddy DNS settings
+
+3. **DNS pointing to wrong service** - Verify DNS A records point to your VPS IP, not another service
+
+**To fix:**
+- Remove any forwarding/redirect rules in GoDaddy
+- Use the correct port numbers: `:9000` for HTTP, `:9443` for HTTPS
+- Or free up ports 80/443 and reconfigure Caddy to use standard ports
+
 ### If Caddy can't get certificates:
 
 - Ensure DNS has propagated (both `@` and `www` point to your VPS)
 - Check that ports 80 and 443 are open (`ufw status`)
 - Verify Caddy can reach Let's Encrypt (check logs)
+- **Note**: Since we're using ports 9000/9443, Let's Encrypt won't work automatically (it needs port 80). You'll need to use self-signed certs or free up port 443 for proper SSL.
 
 ### Manual deployment (if needed):
 
