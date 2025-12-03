@@ -406,13 +406,36 @@ After pushing to `main`, the GitHub Action will:
 You can watch the progress at:
 https://github.com/SavedGenesis/SavedGenesisDev/actions
 
-## Step 11: Verify Deployment
+## Step 11: Configure Nginx reverse proxy
+
+Because the Docker stack now only exposes the Next.js app on `127.0.0.1:3000`, Nginx must handle TLS and proxying for `savedgenesis.com`:
+
+1. Install Nginx (if not already):
+   ```bash
+   sudo apt-get update
+   sudo apt-get install -y nginx
+   ```
+2. Request/renew certificates for `savedgenesis.com` and `www.savedgenesis.com` (e.g. with Certbot's nginx plugin):
+   ```bash
+   sudo certbot --nginx -d savedgenesis.com -d www.savedgenesis.com
+   ```
+3. Replace the server block in `/etc/nginx/sites-available/default` **or** create `/etc/nginx/sites-available/savedgenesis.com` using the template at `ops/nginx/savedgenesis.com.conf`.
+4. Enable the site and reload Nginx:
+   ```bash
+   sudo ln -sf /etc/nginx/sites-available/savedgenesis.com /etc/nginx/sites-enabled/savedgenesis.com
+   sudo nginx -t
+   sudo systemctl reload nginx
+   ```
+
+The panel at `panel.savedgenesis.com` can stay in its existing server block; ensure both server blocks coexist without overlapping `server_name` directives.
+
+## Step 12: Verify Deployment
 
 Once the GitHub Action completes successfully:
 
 1. Wait for DNS to propagate (check with `dig savedgenesis.com +short`)
 2. Visit https://savedgenesis.com
-3. Caddy should automatically obtain Let's Encrypt certificates
+3. Confirm the page is served over HTTPS (Nginx terminates TLS) and pulls live data
 
 ## Troubleshooting
 
@@ -523,8 +546,8 @@ docker compose ps
 # Check logs
 docker compose logs
 
-# Check Caddy logs specifically
-docker compose logs caddy
+# Check application logs
+docker compose logs web
 ```
 
 ### If DNS isn't working:
@@ -536,25 +559,28 @@ docker compose logs caddy
 ### If you get "authorization head error" or "privacy error":
 
 This usually means:
-1. **You're accessing the wrong port** - Since we're using ports 9000/9443 (not 80/443), you need to specify the port:
-   - Access via: `http://savedgenesis.com:9000` or `https://savedgenesis.com:9443`
-   - **NOT** `https://savedgenesis.com` (this hits port 443, which is likely Pterodactyl or another service)
-
-2. **GoDaddy forwarding rule** - If `savedgenesis.com` redirects to another domain, remove the forwarding rule in GoDaddy DNS settings
-
-3. **DNS pointing to wrong service** - Verify DNS A records point to your VPS IP, not another service
+1. **Nginx is misconfigured** – Verify the server block for `savedgenesis.com` proxies to `http://127.0.0.1:3000` and reload Nginx.
+2. **DNS still points elsewhere** – Verify the GoDaddy `@` and `www` A records both resolve to `66.94.123.42` (use https://dnschecker.org/).
+3. **Port 80 blocked by a firewall** – Run `sudo ufw status` (or your provider's firewall panel) and make sure both HTTP and HTTPS are allowed.
 
 **To fix:**
-- Remove any forwarding/redirect rules in GoDaddy
-- Use the correct port numbers: `:9000` for HTTP, `:9443` for HTTPS
-- Or free up ports 80/443 and reconfigure Caddy to use standard ports
+- Remove any forwarding/redirect rules in GoDaddy and point `savedgenesis.com` + `www.savedgenesis.com` directly to the VPS IP.
+- Double-check the Nginx site configuration (see *Nginx configuration* snippet in repo) and reload `nginx`.
+- Restart the stack: `docker compose down && docker compose up -d`.
+- Verify HTTP → HTTPS redirect and certificate with:
+  ```bash
+  curl -I http://savedgenesis.com
+  curl -I https://savedgenesis.com
+  sudo nginx -t
+  sudo systemctl status nginx
+  ```
 
-### If Caddy can't get certificates:
+### If Nginx/Certbot can't get certificates:
 
 - Ensure DNS has propagated (both `@` and `www` point to your VPS)
-- Check that ports 80 and 443 are open (`ufw status`)
-- Verify Caddy can reach Let's Encrypt (check logs)
-- **Note**: Since we're using ports 9000/9443, Let's Encrypt won't work automatically (it needs port 80). You'll need to use self-signed certs or free up port 443 for proper SSL.
+- Check that ports 80 and 443 are free and allowed (`sudo ufw status`)
+- Verify the ACME challenge succeeds (check `/var/log/letsencrypt/letsencrypt.log`)
+- Re-run Certbot with `--nginx` or `--webroot` depending on your setup
 
 ### Manual deployment (if needed):
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 
 type Props = { host: string; port?: number; name?: string; bannerUrl?: string };
 
@@ -13,30 +13,65 @@ function deriveNameFromHost(host: string): string {
     .join(' ');
 }
 
+type StatusState = {
+  online: boolean;
+  players?: { online: number; max: number };
+  version?: string;
+  latencyMs?: number;
+};
+
 export function ServerStatus({ host, port = 25565, name, bannerUrl }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<{
-    online: boolean;
-    players?: { online: number; max: number };
-    version?: string;
-    latencyMs?: number;
-  } | null>(null);
+  const [data, setData] = useState<StatusState | null>(null);
+  const [, startTransition] = useTransition();
 
   useEffect(() => {
-    let mounted = true;
-    setLoading(true);
-    fetch(`/api/minecraft/status?host=${encodeURIComponent(host)}&port=${port}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (!mounted) return;
-        setData(d);
-        setError(null);
-      })
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
+    let cancelled = false;
+    const controller = new AbortController();
+
+    startTransition(() => {
+      if (cancelled) return;
+      setLoading(true);
+      setError(null);
+      setData(null);
+    });
+
+    async function load() {
+      try {
+        const response = await fetch(
+          `/api/minecraft/status?host=${encodeURIComponent(host)}&port=${port}`,
+          {
+            headers: { Accept: 'application/json' },
+            signal: controller.signal,
+          }
+        );
+        if (!response.ok) {
+          throw new Error(`Request failed with status ${response.status}`);
+        }
+        const payload: StatusState = await response.json();
+        if (cancelled) return;
+        setData(payload);
+      } catch (err) {
+        if (cancelled || controller.signal.aborted) {
+          return;
+        }
+        const message =
+          err instanceof Error ? err.message : 'Unable to load server status.';
+        setError(message);
+        setData(null);
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    load();
+
     return () => {
-      mounted = false;
+      cancelled = true;
+      controller.abort();
     };
   }, [host, port]);
 

@@ -24,9 +24,19 @@ export async function getMinecraftStatus(host: string, port: number, ttlMs = 800
 
   try {
     const result = await status(host, port, { timeout: 4000 });
+    const motdClean = result.motd?.clean;
+    let motd: string | undefined;
+    if (typeof motdClean === 'string') {
+      motd = motdClean;
+    } else if (Array.isArray(motdClean)) {
+      motd = (motdClean as Array<string | number | boolean | null | undefined>)
+        .map((segment) => (segment ?? '').toString().trim())
+        .filter(Boolean)
+        .join(' ');
+    }
     const data: MinecraftStatus = {
       online: true,
-      motd: typeof result.motd?.clean === 'string' ? result.motd.clean : Array.isArray(result.motd?.clean) ? result.motd.clean.join(' ') : undefined,
+      motd,
       version: result.version?.name ?? undefined,
       players: { online: result.players?.online ?? 0, max: result.players?.max ?? 0 },
       latencyMs: result.roundTripLatency,

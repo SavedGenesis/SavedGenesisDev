@@ -2,7 +2,10 @@ name: Deploy
 
 on:
   push:
-    branches: [ master ]
+    branches:
+      - main
+      - master
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
@@ -68,50 +71,11 @@ jobs:
                 restart: unless-stopped
                 expose:
                   - "3000"
-              caddy:
-                image: caddy:2.8-alpine
-                restart: unless-stopped
                 ports:
-                  - "9000:80"
-                  - "9443:443"
-                volumes:
-                  - caddy_data:/data
-                  - caddy_config:/config
-                  - ./Caddyfile:/etc/caddy/Caddyfile:ro
-                depends_on:
-                  - web
-            volumes:
-              caddy_data:
-              caddy_config:
+                  - "127.0.0.1:3000:3000"
             EOF
             echo "docker-compose.yml created"
             ls -la docker-compose.yml
-            
-            # Create Caddyfile
-            echo "=== Creating Caddyfile ==="
-            cat > Caddyfile <<'EOF'
-            {
-              auto_https off
-            }
-
-            http://savedgenesis.com:9000, http://www.savedgenesis.com:9000 {
-              redir https://savedgenesis.com:9443{uri}
-            }
-
-            https://savedgenesis.com:9443, https://www.savedgenesis.com:9443 {
-              tls internal
-              encode zstd gzip
-              header {
-                Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-                X-Content-Type-Options nosniff
-                X-Frame-Options DENY
-                Referrer-Policy no-referrer-when-downgrade
-              }
-              reverse_proxy web:3000
-            }
-            EOF
-            echo "Caddyfile created"
-            ls -la Caddyfile
             
             # Verify files exist
             echo "=== Verifying files ==="
@@ -140,10 +104,6 @@ jobs:
               exit 1
             }
             
-            # Check what's using ports (without sudo - using docker commands)
-            echo "=== Checking port usage ==="
-            docker ps --format "table {{.Names}}\t{{.Ports}}" | grep -E ':(80|443|9000|9443|8080|8443)' || echo "No Docker containers using these ports"
-            
             # Stop existing containers if any
             echo "=== Stopping existing containers ==="
             $DOCKER_COMPOSE down || echo "No existing containers to stop"
@@ -162,6 +122,8 @@ jobs:
             # Verify containers are running
             echo "=== Verifying containers ==="
             $DOCKER_COMPOSE ps
+            echo "=== Recent application logs ==="
+            $DOCKER_COMPOSE logs --tail=50 web || true
             
             echo "=== Deployment complete ==="
 

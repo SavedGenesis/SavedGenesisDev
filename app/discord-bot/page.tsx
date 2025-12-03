@@ -4,7 +4,7 @@ export default function DiscordBotPage() {
       <h1 className="text-3xl font-bold tracking-tight">Discord Bot</h1>
       <p className="opacity-80">
         Use <code className="px-1 rounded bg-white/10">/namemc &lt;username&gt;</code> in Discord to get a direct link to a
-        player's NameMC page. Simple and fast.
+        player&apos;s NameMC page. Simple and fast.
       </p>
       <div className="rounded-lg border border-white/10 p-4 space-y-2">
         <div className="text-sm opacity-70">Examples</div>
